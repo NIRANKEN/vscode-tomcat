@@ -2,6 +2,7 @@
 
 import * as child_process from "child_process";
 import * as fse from "fs-extra";
+import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import * as readline from "readline";
@@ -14,8 +15,8 @@ import { localize } from './localize';
 
 /* tslint:disable:no-any */
 export namespace Utility {
-    export async function executeCMD(outputPane: vscode.OutputChannel, serverName: string, command: string, options: child_process.SpawnOptions, ...args: string[]): Promise<void> {
-        await new Promise((resolve: () => void, reject: (e: Error) => void): void => {
+    export async function executeCMD (outputPane: vscode.OutputChannel, serverName: string, command: string, options: child_process.SpawnOptions, ...args: string[]): Promise<void> {
+        return await new Promise((resolve, reject) => {
             outputPane.show();
             let stderr: string = '';
             const p: child_process.ChildProcess = child_process.spawn(command, args, options);
@@ -109,23 +110,23 @@ export namespace Utility {
         return restartConfig && (httpPort !== newHttpPort || httpsPort !== newHttpsPort);
     }
 
-    export async function readFileLineByLine(file: string, filterFunction?: (value: string) => boolean): Promise<string[]> {
-        let result: string[] = [];
-        await new Promise((resolve: () => void): void => {
-            const lineReader: readline.ReadLine = readline.createInterface({
-                input: fse.createReadStream(file),
-                crlfDelay: Infinity
-            });
+    export function readFileLineByLine(file: string, filterFunction?: (value: string) => boolean): Promise<string[]> {
+        // const inputStream = fse.createReadStream(file);
+        const inputStream = fs.createReadStream(file, 'utf8');
+        const lineReader: readline.ReadLine = readline.createInterface({
+            input: inputStream,
+            crlfDelay: Infinity
+        });
+        return new Promise((resolve: (value: string[]) => void): void => {
+            inputStream.once('error', _ => resolve(null));
+            let result: string[] = [];
             lineReader.on('line', (line: string) => {
                 if (!filterFunction || filterFunction(line)) {
                     result = result.concat(line);
                 }
             });
-            lineReader.on('close', () => {
-                resolve();
-            });
+            lineReader.on('close', _ => resolve(result));
         });
-        return result;
     }
 
     export function getTempStoragePath(): string {
@@ -154,7 +155,7 @@ export namespace Utility {
                     (item.$.protocol === undefined || item.$.protocol.startsWith(Constants.HTTP))).$.port;
             } else if (kind === Constants.PortKind.Https) {
                 port = jsonObj.Server.Service.find((item: any) => item.$.name === Constants.CATALINA).Connector.find((item: any) =>
-                    (item.$.SSLEnabled.toLowerCase() === 'true')).$.port;
+                    (item.$.SSLEnabled && item.$SSLEnabled.toLowerCase() === 'true')).$.port;
             }
         } catch (err) {
             port = undefined;

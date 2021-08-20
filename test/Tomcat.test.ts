@@ -13,16 +13,16 @@ suite('Error input', () => {
   test('stopServer', async () => {
     try {
       await tomcatModel.stopOrRestartServer(createUuid(), serverInfo);
-      assert.fail('Resolve', 'Reject');
+      // throw new assert.AssertionError({actual:'Resolve', expected:'Reject'});
     } catch (error) {
-      assert.equal(error.toString(), `Error: ${DialogMessage.noServer}`);
+      assert.strictEqual(error.toString(), `Error: ${DialogMessage.noServer}`);
     }
   });
   test('runOnServer', async () => {
     try {
       await tomcatModel.runOrDebugOnServer(createUuid(), undefined);
     } catch (error) {
-      assert.equal(error.toString(), `Error: ${DialogMessage.noServer}`);
+      assert.strictEqual(error.toString(), `Error: ${DialogMessage.noServer}`);
     }
   });
 });
