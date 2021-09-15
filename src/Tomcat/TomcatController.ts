@@ -175,7 +175,8 @@ export class TomcatController {
     public async runOrDebugOnServer(operationId: string, uri: vscode.Uri, debug?: boolean, server?: TomcatServer): Promise<void> {
         if (!uri) {
             const dialog: vscode.Uri[] = await Utility.trackTelemetryStep(operationId, 'select war', () => vscode.window.showOpenDialog({
-                defaultUri: vscode.workspace.rootPath ? vscode.Uri.file(vscode.workspace.rootPath) : undefined,
+                // rootDir -> workspaceFoldersに変えたけど要確認
+                defaultUri: vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length ? vscode.workspace.workspaceFolders[0].uri : undefined,
                 canSelectFiles: true,
                 canSelectFolders: false,
                 openLabel: DialogMessage.selectWarPackage
@@ -450,10 +451,9 @@ export class TomcatController {
                 startArguments = [`${Constants.DEBUG_ARGUMENT_KEY}${serverInfo.getDebugPort()}`].concat(startArguments);
             }
             startArguments.push('start');
-            const javaProcess: Promise<void> = Utility.executeCMD(this._outputChannel, serverInfo.getName(), Utility.getJavaExecutable(), { shell: true }, ...startArguments);
             serverInfo.setStarted(true);
             this.startDebugSession(operationId, serverInfo);
-            await javaProcess;
+            await Utility.executeCMD(this._outputChannel, serverInfo.getName(), Utility.getJavaExecutable(), { shell: true }, ...startArguments);
             serverInfo.setStarted(false);
             watcher.close();
             if (serverInfo.needRestart) {
